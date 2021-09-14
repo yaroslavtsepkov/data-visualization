@@ -1,10 +1,7 @@
-from curses import color_content
-from turtle import color
 import pandas as pd
 import streamlit as st
 import plotly.express as px
 import pydeck as pdk
-from pydeck.types import String
 
 st.set_page_config(
     page_title="Vulcans visualization",
