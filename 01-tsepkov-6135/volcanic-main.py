@@ -28,9 +28,11 @@ def preprocessing():
     return df.dropna()
 
 def main():
+    
     df = preprocessing()
     with st.expander("Click for view dataset"):
         st.dataframe(df)
+    st.markdown("# Volcanics by Region")
     with st.container():
         chart = pdk.Deck(
             layers=pdk.Layer(
@@ -47,9 +49,12 @@ def main():
     with st.container():
         region = st.selectbox("Select region", df["Region"].unique())
         source = df.query("Region == @region")
-        with st.expander("Describe"):
-            chart = px.scatter_mapbox(source, lat="Latitude", lon="Longitude",
-                color="Eruption",
+        with st.expander("Volcanic formations by type in the region with recorded eruptions"):
+            chart = px.scatter_mapbox(
+                source.query("`Eruption` != False"),
+                lat="Latitude", lon="Longitude",
+                color = "Type",
+                hover_data=["Name","Last Known Eruption"],
                 size_max=15, zoom=2,
                 mapbox_style="carto-positron")
             st.plotly_chart(chart,True)
