@@ -1,6 +1,10 @@
+from curses import color_content
+from turtle import color
 import pandas as pd
 import streamlit as st
 import plotly.express as px
+import pydeck as pdk
+from pydeck.types import String
 
 st.set_page_config(
     page_title="Vulcans visualization",
@@ -20,33 +24,46 @@ def preprocessing():
             "Longitude":float,
             "Elevation (Meters)":int
         })
-    return df
+    df["Eruption"]=df["Last Known Eruption"].map(lambda x: False if x == "Unknown" else True)
+    return df.dropna()
 
 def main():
     df = preprocessing()
     with st.expander("Click for view dataset"):
         st.dataframe(df)
     with st.container():
-        source = df.groupby(["Country"]).agg({"Name":"count"}).sort_values("Name",ascending=False).reset_index().rename(columns={"Name":"Count vulcans"})
-        
-        temp = st.sidebar.slider("Count country on Histogram",min_value=10, max_value=source.shape[0])
-        chart = px.bar(data_frame=source.iloc[:temp],x="Country",y="Count vulcans",title="Distributed vulcans by World")
-        st.plotly_chart(chart, True)
+        chart = pdk.Deck(
+            layers=pdk.Layer(
+                "HeatmapLayer",
+                df,
+                get_position=["Longitude","Latitude"],
+                auto_highlight=True,
+                get_radius=1,          # Radius is given in meter
+                pickable=True,
+            )
+        )
+        st.pydeck_chart(chart,True)
         
     with st.container():
-        region = st.sidebar.selectbox("Select region", df["Region"].unique())
+        region = st.selectbox("Select region", df["Region"].unique())
         source = df.query("Region == @region")
-        cols = st.columns([2,1,1])
+        with st.expander("Describe"):
+            chart = px.scatter_mapbox(source, lat="Latitude", lon="Longitude",
+                color="Eruption",
+                size_max=15, zoom=2,
+                mapbox_style="carto-positron")
+            st.plotly_chart(chart,True)
+        cols = st.columns([2,1])
         with cols[0]:
-            chart = px.bar(data_frame=source.groupby(["Country"]).agg({"Name":"count"}).rename(columns={"Name":"Count vulcans"}).sort_values("Count vulcans",ascending=False), y="Count vulcans")
+            chart = px.bar(data_frame=source.groupby(["Country","Elevation (Meters)","Name"]).agg({"Name":"count"}).rename(columns={"Name":"Count vulcans"}).sort_values("Elevation (Meters)",ascending=False).reset_index(),x="Country", y="Count vulcans",color="Elevation (Meters)",hover_data=["Elevation (Meters)","Name"])
             st.plotly_chart(chart, True)
         with cols[1]:
-            chart = px.pie(data_frame=source, names="Type")
+            chart = px.sunburst(data_frame=source, path=["Country","Activity Evidence","Type"], hover_data=["Last Known Eruption"])
             st.plotly_chart(chart, True)
-        with cols[2]:
-            chart = px.pie(data_frame=source, names="Activity Evidence")
+        with st.expander("Top vulcans by {}".format(region)):
+            count = st.slider("Quntity vulcans for view", min_value=5,max_value=source.shape[0])
+            source = source.sort_values("Elevation (Meters)", ascending=False).iloc[:count]
+            chart = px.bar(data_frame=source, x="Name", y="Elevation (Meters)", color="Activity Evidence")
             st.plotly_chart(chart, True)
-    
-
 if __name__=='__main__':
     main()
