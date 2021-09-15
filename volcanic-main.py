@@ -39,7 +39,7 @@ def main():
                 auto_highlight=True,
                 get_radius=1,
                 pickable=True,
-            )
+            ), map_style="light"
         )
         st.pydeck_chart(chart,True)
         
