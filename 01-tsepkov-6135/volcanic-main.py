@@ -37,7 +37,7 @@ def main():
                 df,
                 get_position=["Longitude","Latitude"],
                 auto_highlight=True,
-                get_radius=1,          # Radius is given in meter
+                get_radius=1,
                 pickable=True,
             )
         )
